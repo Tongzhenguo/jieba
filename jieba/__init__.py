@@ -169,9 +169,9 @@ class Tokenizer(object):
 
     def calc(self, sentence, DAG, route):
         N = len(sentence)
-        route[N] = (0, 0)
-        logtotal = log(self.total)
-        for idx in xrange(N - 1, -1, -1):
+        route[N] = (0, 0)#key为字索引,value形如（概率,词的最后一个字的索引）为字典
+        logtotal = log(self.total)#total是总词频
+        for idx in xrange(N - 1, -1, -1):#p(i) = max( log(freq1 / total_freq)+ p(i+1))
             route[idx] = max((log(self.FREQ.get(sentence[idx:x + 1]) or 1) -
                               logtotal + route[x + 1][0], x) for x in DAG[idx])
 
@@ -180,10 +180,10 @@ class Tokenizer(object):
         DAG = {}
         N = len(sentence)
         for k in xrange(N):
-            tmplist = []
+            tmplist = [] #tmplist是可能的词的结束索引
             i = k
             frag = sentence[k]
-            while i < N and frag in self.FREQ:
+            while i < N and frag in self.FREQ:#FREQ是词频的字典
                 if self.FREQ[frag]:
                     tmplist.append(i)
                 i += 1
@@ -229,10 +229,10 @@ class Tokenizer(object):
             yield buf
             buf = ''
 
-    def __cut_DAG(self, sentence):
-        DAG = self.get_DAG(sentence)
+    def __cut_DAG(self, sentence):#HMM分词模式
+        DAG = self.get_DAG(sentence)#根据词库构建DAG图
         route = {}
-        self.calc(sentence, DAG, route)
+        self.calc(sentence, DAG, route)#计算最大概率路径
         x = 0
         buf = ''
         N = len(sentence)
@@ -248,7 +248,7 @@ class Tokenizer(object):
                         buf = ''
                     else:
                         if not self.FREQ.get(buf):
-                            recognized = finalseg.cut(buf)
+                            recognized = finalseg.cut(buf)#调用HMM分词
                             for t in recognized:
                                 yield t
                         else:
@@ -262,7 +262,7 @@ class Tokenizer(object):
             if len(buf) == 1:
                 yield buf
             elif not self.FREQ.get(buf):
-                recognized = finalseg.cut(buf)
+                recognized = finalseg.cut(buf)#调用HMM分词
                 for t in recognized:
                     yield t
             else:
@@ -288,11 +288,11 @@ class Tokenizer(object):
             re_han = re_han_default
             re_skip = re_skip_default
         if cut_all:
-            cut_block = self.__cut_all
+            cut_block = self.__cut_all #全模式只需要构建DAG图
         elif HMM:
-            cut_block = self.__cut_DAG
+            cut_block = self.__cut_DAG #HMM构建完DAG图之后要计算最大概率路径和使用HMM解决未登录词问题
         else:
-            cut_block = self.__cut_DAG_NO_HMM
+            cut_block = self.__cut_DAG_NO_HMM #既不是全模式也不是HMM模式，构建完DAG图之后也需要计算最大概率路径
         blocks = re_han.split(sentence)
         for blk in blocks:
             if not blk:

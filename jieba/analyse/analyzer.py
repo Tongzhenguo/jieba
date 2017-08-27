@@ -16,11 +16,11 @@ STOP_WORDS = frozenset(('a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'can',
 accepted_chars = re.compile(r"[\u4E00-\u9FD5]+")
 
 
-class ChineseTokenizer(Tokenizer):
-
+class ChineseTokenizer(Tokenizer):#继承自whoosh.analysis的Tokenizer
+    #Tokenize：返回词语在原文的起止位置
     def __call__(self, text, **kargs):
-        words = jieba.tokenize(text, mode="search")
-        token = Token()
+        words = jieba.tokenize(text, mode="search")#调用jieba的tokenize进行切词
+        token = Token()#Token的四个成员原始词，pos,start_pos,end_pos
         for (w, start_pos, stop_pos) in words:
             if not accepted_chars.match(w) and len(w) <= 1:
                 continue
@@ -35,3 +35,4 @@ def ChineseAnalyzer(stoplist=STOP_WORDS, minsize=1, stemfn=stem, cachesize=50000
     return (ChineseTokenizer() | LowercaseFilter() |
             StopFilter(stoplist=stoplist, minsize=minsize) |
             StemFilter(stemfn=stemfn, ignore=None, cachesize=cachesize))
+    #StemFilter是词干过滤器，用到了波特词干算法(Porter stemming algorithm),比如going经过滤之后只会保留词干go

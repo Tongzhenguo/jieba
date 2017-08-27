@@ -87,7 +87,7 @@ class TFIDF(KeywordExtractor):
         """
         if allowPOS:
             allowPOS = frozenset(allowPOS)
-            words = self.postokenizer.cut(sentence)
+            words = self.postokenizer.cut(sentence)#根据词性切词
         else:
             words = self.tokenizer.cut(sentence)
         freq = {}
@@ -100,11 +100,12 @@ class TFIDF(KeywordExtractor):
             wc = w.word if allowPOS and withFlag else w
             if len(wc.strip()) < 2 or wc.lower() in self.stop_words:
                 continue
-            freq[w] = freq.get(w, 0.0) + 1.0
+            freq[w] = freq.get(w, 0.0) + 1.0#更新词频
         total = sum(freq.values())
         for k in freq:
             kw = k.word if allowPOS and withFlag else k
-            freq[k] *= self.idf_freq.get(kw, self.median_idf) / total
+            freq[k] *= self.idf_freq.get(kw, self.median_idf) / total #计算TF-IDF值，其中IDF值是IDF文件提供的
+            #如果IDF文件中查不到指定词的逆文档词频，则都给一个相同的默认值
 
         if withWeight:
             tags = sorted(freq.items(), key=itemgetter(1), reverse=True)

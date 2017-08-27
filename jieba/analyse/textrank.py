@@ -11,7 +11,7 @@ from .._compat import *
 
 
 class UndirectWeightedGraph:
-    d = 0.85
+    d = 0.85 #阻尼系数
 
     def __init__(self):
         self.graph = defaultdict(list)
@@ -21,8 +21,8 @@ class UndirectWeightedGraph:
         self.graph[start].append((start, end, weight))
         self.graph[end].append((end, start, weight))
 
-    def rank(self):
-        ws = defaultdict(float)
+    def rank(self):#迭代10次，计算textrank值
+        ws = defaultdict(float) #key为当前词，
         outSum = defaultdict(float)
 
         wsdef = 1.0 / (len(self.graph) or 1.0)
@@ -37,6 +37,8 @@ class UndirectWeightedGraph:
                 s = 0
                 for e in self.graph[n]:
                     s += e[2] / outSum[e[1]] * ws[e[1]]
+                #迭代公式：ws(n) = （1-d）+d*sum{ w(j,i) / sum{w(j,k} )*ws(n) },其中j是入度，k是出度
+                #入度结点越多，入度结点的权重越大，说明这个结点的权重越高
                 ws[n] = (1 - self.d) + self.d * s
 
         (min_rank, max_rank) = (sys.float_info[0], sys.float_info[3])
@@ -48,7 +50,7 @@ class UndirectWeightedGraph:
                 max_rank = w
 
         for n, w in ws.items():
-            # to unify the weights, don't *100.
+            # to unify the weights, don't *100.最大最小归一化
             ws[n] = (w - min_rank / 10.0) / (max_rank - min_rank / 10.0)
 
         return ws
@@ -60,7 +62,7 @@ class TextRank(KeywordExtractor):
         self.tokenizer = self.postokenizer = jieba.posseg.dt
         self.stop_words = self.STOP_WORDS.copy()
         self.pos_filt = frozenset(('ns', 'n', 'vn', 'v'))
-        self.span = 5
+        self.span = 5 #上下文窗口
 
     def pairfilter(self, wp):
         return (wp.flag in self.pos_filt and len(wp.word.strip()) >= 2
@@ -79,11 +81,11 @@ class TextRank(KeywordExtractor):
                         if False, return a list of words
         """
         self.pos_filt = frozenset(allowPOS)
-        g = UndirectWeightedGraph()
-        cm = defaultdict(int)
+        g = UndirectWeightedGraph() #构造一个无向加权图，使用一个字典来表示，key为当前词表示的节点，value为形如(start, end, weight)这种三元组表示的边
+        cm = defaultdict(int) #key为形如（当前词，上下文词）形式的元组，value为key值出现的次数
         words = tuple(self.tokenizer.cut(sentence))
         for i, wp in enumerate(words):
-            if self.pairfilter(wp):
+            if self.pairfilter(wp):#满足条件的词和词性
                 for j in xrange(i + 1, i + self.span):
                     if j >= len(words):
                         break
@@ -96,7 +98,7 @@ class TextRank(KeywordExtractor):
 
         for terms, w in cm.items():
             g.addEdge(terms[0], terms[1], w)
-        nodes_rank = g.rank()
+        nodes_rank = g.rank() #迭代10次,返回节点及其对应权重
         if withWeight:
             tags = sorted(nodes_rank.items(), key=itemgetter(1), reverse=True)
         else:
